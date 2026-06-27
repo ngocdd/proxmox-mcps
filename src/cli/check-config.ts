@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `proxmox-mcps check-config` (binary `proxmox-mcp-check-config`) —
+ * `proxmox-mcps check-config` (binary `proxmox-mcps-check-config`) —
  * validate environment variables without starting the MCP server.
  */
 import { loadConfig } from "../config/index.js";
@@ -14,7 +14,6 @@ try {
       `  Verify SSL: ${cfg.proxmox.verifySsl}\n` +
       `  Dev mode: ${cfg.safety.devMode}\n` +
       `  Dangerously allow destructive: ${cfg.safety.dangerouslyAllowDestructive}\n` +
-      `  Approval token configured: ${cfg.safety.approvalToken ? "yes" : "no"}\n` +
       `  Audit only: ${cfg.safety.auditOnly}\n` +
       `  Log level: ${cfg.logLevel}\n` +
       `  SSH user: ${cfg.ssh.user}@*:${cfg.ssh.port}\n` +

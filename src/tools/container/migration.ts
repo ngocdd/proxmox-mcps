@@ -102,12 +102,13 @@ export function registerContainerMigrationTools(server: McpServer, ctx: ToolCont
     "convert_container_to_template",
     {
       title: "Convert container to template",
-      description: "Convert an LXC container into a template. HIGH RISK — original becomes read-only.",
+      description:
+        "Convert an LXC container into a template. HIGH RISK — original becomes read-only. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           vmid: z.string().regex(/^\d+$/),
-          approval_token: z.string().optional().describe("Approval token for high-risk operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: {
@@ -117,11 +118,11 @@ export function registerContainerMigrationTools(server: McpServer, ctx: ToolCont
         openWorldHint: true,
       },
     },
-    async ({ node, vmid, approval_token }) =>
+    async ({ node, vmid, confirm }) =>
       runTool(
         ctx,
         "convert_container_to_template",
-        { node, vmid, approval_token },
+        { node, vmid, confirm },
         async () => {
           const upid = await ctx.client.post<string>(paths.lxcTemplate(node, vmid));
           const job = trackUpid(ctx, upid, {

@@ -145,7 +145,7 @@ export class InMemoryJobStore implements JobStore {
 function scrubArgs(args: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(args)) {
-    if (k === "approval_token" || k === "password" || k === "new_password" || k === "cipassword") {
+    if (k === "password" || k === "new_password" || k === "cipassword") {
       out[k] = "[REDACTED]";
     } else {
       out[k] = v;

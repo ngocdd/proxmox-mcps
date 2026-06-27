@@ -45,12 +45,7 @@ async function main(): Promise<void> {
 
   if (config.safety.dangerouslyAllowDestructive) {
     logger.warn(
-      "PROXMOX_DANGEROUSLY_ALLOW_DESTRUCTIVE=true — destructive tools will run without approval_token",
-    );
-  }
-  if (!config.safety.approvalToken && !config.safety.dangerouslyAllowDestructive) {
-    logger.warn(
-      "Neither PROXMOX_MCP_APPROVAL_TOKEN nor PROXMOX_DANGEROUSLY_ALLOW_DESTRUCTIVE is set — destructive/high-risk tools will be rejected",
+      "PROXMOX_DANGEROUSLY_ALLOW_DESTRUCTIVE=true — destructive tools will run without user confirmation",
     );
   }
 

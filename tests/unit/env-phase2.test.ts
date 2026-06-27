@@ -97,27 +97,16 @@ describe("parseEnv — Safety", () => {
     PROXMOX_TOKEN_VALUE: "12345678-1234-1234-1234-123456789012",
   };
 
-  it("accepts approval_token of sufficient length", () => {
-    const env = parseEnv({
-      ...baseEnv,
-      PROXMOX_MCP_APPROVAL_TOKEN: "abcdef1234567890abcdef1234567890",
-    });
-    expect(env.PROXMOX_MCP_APPROVAL_TOKEN).toBe("abcdef1234567890abcdef1234567890");
-  });
-
-  it("rejects approval_token shorter than 8 chars", () => {
-    expect(() =>
-      parseEnv({ ...baseEnv, PROXMOX_MCP_APPROVAL_TOKEN: "short" }),
-    ).toThrow();
-  });
-
-  it("treats empty approval_token as no token", () => {
-    const env = parseEnv({ ...baseEnv, PROXMOX_MCP_APPROVAL_TOKEN: "" });
-    expect(env.PROXMOX_MCP_APPROVAL_TOKEN).toBe("");
-  });
-
   it("accepts audit_only flag", () => {
     const env = parseEnv({ ...baseEnv, PROXMOX_MCP_AUDIT_ONLY: "true" });
     expect(env.PROXMOX_MCP_AUDIT_ONLY).toBe(true);
+  });
+
+  it("accepts dangerously_allow_destructive flag", () => {
+    const env = parseEnv({
+      ...baseEnv,
+      PROXMOX_DANGEROUSLY_ALLOW_DESTRUCTIVE: "true",
+    });
+    expect(env.PROXMOX_DANGEROUSLY_ALLOW_DESTRUCTIVE).toBe(true);
   });
 });

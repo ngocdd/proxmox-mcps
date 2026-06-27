@@ -352,14 +352,14 @@ export function registerVmCrudTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Delete VM",
       description:
-        "Permanently delete a VM and its disks. DESTRUCTIVE. Requires approval_token or dangerously_allow_destructive.",
+        "Permanently delete a VM and its disks. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           vmid: z.string().regex(/^\d+$/),
           force: z.boolean().default(false).describe("Force-delete if running"),
           purge: z.boolean().default(false).describe("Purge from backup jobs"),
-          approval_token: z.string().optional().describe("Approval token for destructive operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: {

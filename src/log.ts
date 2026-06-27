@@ -16,20 +16,15 @@ const REDACT_PATHS = [
   "*.password",
   "*.ssh_password",
   "*.ssh_private_key",
-  "*.approval_token",
-  "*.approvalToken",
   "*.new_password",
   "*.cipassword",
   "api.token",
   "config.PROXMOX_TOKEN_VALUE",
   "config.PROXMOX_SSH_PASSWORD",
-  "config.PROXMOX_MCP_APPROVAL_TOKEN",
   "config.proxmox.tokenValue",
-  "config.safety.approvalToken",
   "config.proxmox.tokenName",
   "env.PROXMOX_TOKEN_VALUE",
   "env.PROXMOX_SSH_PASSWORD",
-  "env.PROXMOX_MCP_APPROVAL_TOKEN",
 ];
 
 export interface LoggerConfig {

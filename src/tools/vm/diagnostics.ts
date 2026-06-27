@@ -237,14 +237,14 @@ export function registerVmDiagnosticsTools(server: McpServer, ctx: ToolContext):
     {
       title: "Set guest user password",
       description:
-        "Set a user password inside the guest via QEMU agent. HIGH RISK — requires approval_token.",
+        "Set a user password inside the guest via QEMU agent. HIGH RISK — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           vmid: z.string().regex(/^\d+$/),
           username: z.string().min(1),
           password: z.string().min(1).describe("New password (redacted in logs)"),
-          approval_token: z.string().optional().describe("Approval token for high-risk operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: {

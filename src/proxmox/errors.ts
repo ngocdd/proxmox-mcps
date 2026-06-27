@@ -85,18 +85,17 @@ export class RateLimitError extends ProxmoxApiError {
 }
 
 /**
- * Raised by the policy gate when a high-risk tool is invoked without approval.
+ * Raised when a destructive/high-risk tool is invoked without an explicit user
+ * confirmation. Handlers should catch this, surface the prompt to the caller,
+ * and re-invoke the tool with `confirm: true` once the user agrees.
  */
-export class ApprovalRequiredError extends Error {
+export class ConfirmationRequiredError extends Error {
   public readonly tool: string;
   public readonly risk: "high" | "destructive";
 
-  constructor(tool: string, risk: "high" | "destructive") {
-    super(
-      `Tool '${tool}' is ${risk}-risk and requires either an 'approval_token' argument ` +
-        `matching PROXMOX_MCP_APPROVAL_TOKEN, or PROXMOX_DANGEROUSLY_ALLOW_DESTRUCTIVE=true.`,
-    );
-    this.name = "ApprovalRequiredError";
+  constructor(tool: string, risk: "high" | "destructive", prompt: string) {
+    super(prompt);
+    this.name = "ConfirmationRequiredError";
     this.tool = tool;
     this.risk = risk;
   }

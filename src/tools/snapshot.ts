@@ -90,7 +90,7 @@ export function registerSnapshotTools(server: McpServer, ctx: ToolContext): void
     {
       title: "Delete snapshot",
       description:
-        "Delete a snapshot from a VM or container. Requires either dangerously_allow_destructive or approval_token.",
+        "Delete a snapshot from a VM or container. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
@@ -98,7 +98,7 @@ export function registerSnapshotTools(server: McpServer, ctx: ToolContext): void
           snapname: z.string().min(1).describe("Snapshot name to delete"),
           force: z.boolean().optional().describe("Force removal even if removal is not safe"),
           vm_type: VmTypeSchema.default("qemu"),
-          approval_token: z.string().optional().describe("Approval token for high-risk operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: {
@@ -108,11 +108,11 @@ export function registerSnapshotTools(server: McpServer, ctx: ToolContext): void
         openWorldHint: true,
       },
     },
-    async ({ node, vmid, snapname, force, vm_type, approval_token }) =>
+    async ({ node, vmid, snapname, force, vm_type, confirm }) =>
       runTool(
         ctx,
         "delete_snapshot",
-        { node, vmid, snapname, vm_type, force, approval_token },
+        { node, vmid, snapname, vm_type, force, confirm },
         async () => {
           const params: Record<string, unknown> = {};
           if (force) params.force = 1;
@@ -131,14 +131,14 @@ export function registerSnapshotTools(server: McpServer, ctx: ToolContext): void
     {
       title: "Rollback to snapshot",
       description:
-        "Revert a VM or container to a previous snapshot state. VM/container will be stopped first. Requires approval_token or dangerously_allow_destructive.",
+        "Revert a VM or container to a previous snapshot state. VM/container will be stopped first. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           vmid: z.string().regex(/^\d+$/),
           snapname: z.string().min(1).describe("Snapshot name to roll back to"),
           vm_type: VmTypeSchema.default("qemu"),
-          approval_token: z.string().optional().describe("Approval token for high-risk operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: {
@@ -148,11 +148,11 @@ export function registerSnapshotTools(server: McpServer, ctx: ToolContext): void
         openWorldHint: true,
       },
     },
-    async ({ node, vmid, snapname, vm_type, approval_token }) =>
+    async ({ node, vmid, snapname, vm_type, confirm }) =>
       runTool(
         ctx,
         "rollback_snapshot",
-        { node, vmid, snapname, vm_type, approval_token },
+        { node, vmid, snapname, vm_type, confirm },
         async () => {
           const upid = await ctx.client.post<string>(
             paths.snapshotRollback(node, vm_type, vmid, snapname),

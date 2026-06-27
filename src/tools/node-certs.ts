@@ -27,19 +27,21 @@ export function registerNodeCertsTools(server: McpServer, ctx: ToolContext): voi
     "delete_node_certificate",
     {
       title: "Delete node certificate",
-      description: "Delete a custom certificate from a node. HIGH RISK — reverts to self-signed.",
+      description:
+        "Delete a custom certificate from a node. HIGH RISK — reverts to self-signed. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           certname: z.string().min(1).describe("Certificate name"),
           restart: z.boolean().optional().describe("Restart pveproxy after deletion"),
           force: z.boolean().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ node, certname, restart, force }) =>
-      runTool(ctx, "delete_node_certificate", { node, certname }, async () => {
+    async ({ node, certname, restart, force, confirm }) =>
+      runTool(ctx, "delete_node_certificate", { node, certname, restart, force, confirm }, async () => {
         const params: Record<string, unknown> = {};
         if (restart !== undefined) params.restart = restart ? 1 : 0;
         if (force !== undefined) params.force = force ? 1 : 0;

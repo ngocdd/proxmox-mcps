@@ -45,7 +45,7 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Create SDN controller",
       description:
-        "Create an SDN controller (EVPN/ISIS/bgp). HIGH RISK — network connectivity depends on this.",
+        "Create an SDN controller (EVPN/ISIS/bgp). HIGH RISK — network connectivity depends on this. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           name: z.string().min(1).regex(/^[a-zA-Z0-9_\-]+$/).describe("Controller name"),
@@ -56,7 +56,7 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
           ebgp_multihop: z.number().int().optional(),
           loopback: z.string().optional(),
           node: z.string().optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
@@ -65,7 +65,7 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
       runTool(ctx, "create_sdn_controller", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = { name: args.name, type: args.type };
         for (const [k, v] of Object.entries(args)) {
-          if (k === "name" || k === "type" || k === "approval_token" || v === undefined) continue;
+          if (k === "name" || k === "type" || v === undefined) continue;
           body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
         }
         await ctx.client.post(paths.sdnControllers(), body);
@@ -77,7 +77,8 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
     "update_sdn_controller",
     {
       title: "Update SDN controller",
-      description: "Update an existing SDN controller.",
+      description:
+        "Update an existing SDN controller. HIGH RISK — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           name: z.string().min(1),
@@ -85,7 +86,7 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
           peers: z.string().optional(),
           ebgp: z.boolean().optional(),
           delete: z.array(z.string()).optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
@@ -94,7 +95,7 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
       runTool(ctx, "update_sdn_controller", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(args)) {
-          if (k === "name" || k === "approval_token" || v === undefined) continue;
+          if (k === "name" || v === undefined) continue;
           if (k === "delete" && Array.isArray(v)) body.delete = v.join(",");
           else body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
         }
@@ -107,14 +108,18 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
     "delete_sdn_controller",
     {
       title: "Delete SDN controller",
-      description: "Delete an SDN controller. DESTRUCTIVE — associated zones/vnets will stop working.",
+      description:
+        "Delete an SDN controller. DESTRUCTIVE — associated zones/vnets will stop working. Ask the user to confirm before invoking.",
       inputSchema: z
-        .object({ name: z.string().min(1), approval_token: z.string().optional() })
+        .object({
+          name: z.string().min(1),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
+        })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ name, approval_token }) =>
-      runTool(ctx, "delete_sdn_controller", { name, approval_token }, async () => {
+    async ({ name, confirm }) =>
+      runTool(ctx, "delete_sdn_controller", { name, confirm }, async () => {
         await ctx.client.delete(paths.sdnController(name));
         return jsonResult(`SDN controller ${name} deleted.`, { name });
       }),
@@ -156,7 +161,8 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
     "create_sdn_zone",
     {
       title: "Create SDN zone",
-      description: "Create an SDN zone (vxlan/evpn/simple/qinq/vlan). HIGH RISK.",
+      description:
+        "Create an SDN zone (vxlan/evpn/simple/qinq/vlan). HIGH RISK — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           name: z.string().min(1).regex(/^[a-zA-Z0-9_\-]+$/),
@@ -167,7 +173,7 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
           vlan_protocol: z.enum(["802.1ad", "802.1q"]).optional(),
           vxlan_port: z.number().int().min(1).max(65535).optional(),
           peers: z.string().optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
@@ -176,7 +182,7 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
       runTool(ctx, "create_sdn_zone", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = { name: args.name, type: args.type };
         for (const [k, v] of Object.entries(args)) {
-          if (k === "name" || k === "type" || k === "approval_token" || v === undefined) continue;
+          if (k === "name" || k === "type" || v === undefined) continue;
           body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
         }
         await ctx.client.post(paths.sdnZones(), body);
@@ -188,7 +194,7 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
     "update_sdn_zone",
     {
       title: "Update SDN zone",
-      description: "Update an SDN zone.",
+      description: "Update an SDN zone. HIGH RISK — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           name: z.string().min(1),
@@ -197,7 +203,7 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
           mtu: z.number().int().optional(),
           vxlan_port: z.number().int().optional(),
           delete: z.array(z.string()).optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
@@ -206,7 +212,7 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
       runTool(ctx, "update_sdn_zone", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(args)) {
-          if (k === "name" || k === "approval_token" || v === undefined) continue;
+          if (k === "name" || v === undefined) continue;
           if (k === "delete" && Array.isArray(v)) body.delete = v.join(",");
           else body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
         }
@@ -219,14 +225,18 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
     "delete_sdn_zone",
     {
       title: "Delete SDN zone",
-      description: "Delete an SDN zone. DESTRUCTIVE — vnets/subnets in this zone will stop working.",
+      description:
+        "Delete an SDN zone. DESTRUCTIVE — vnets/subnets in this zone will stop working. Ask the user to confirm before invoking.",
       inputSchema: z
-        .object({ name: z.string().min(1), approval_token: z.string().optional() })
+        .object({
+          name: z.string().min(1),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
+        })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ name, approval_token }) =>
-      runTool(ctx, "delete_sdn_zone", { name, approval_token }, async () => {
+    async ({ name, confirm }) =>
+      runTool(ctx, "delete_sdn_zone", { name, confirm }, async () => {
         await ctx.client.delete(paths.sdnZone(name));
         return jsonResult(`SDN zone ${name} deleted.`, { name });
       }),
@@ -327,14 +337,18 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
     "delete_sdn_vnet",
     {
       title: "Delete SDN vnet",
-      description: "Delete an SDN vnet and its subnets.",
+      description:
+        "Delete an SDN vnet and its subnets. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
-        .object({ name: z.string().min(1), approval_token: z.string().optional() })
+        .object({
+          name: z.string().min(1),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
+        })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ name, approval_token }) =>
-      runTool(ctx, "delete_sdn_vnet", { name, approval_token }, async () => {
+    async ({ name, confirm }) =>
+      runTool(ctx, "delete_sdn_vnet", { name, confirm }, async () => {
         await ctx.client.delete(paths.sdnVnet(name));
         return jsonResult(`SDN vnet ${name} deleted.`, { name });
       }),
@@ -426,7 +440,7 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
       runTool(ctx, "update_sdn_subnet", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(args)) {
-          if (k === "vnet" || k === "subnet" || k === "approval_token" || v === undefined) continue;
+          if (k === "vnet" || k === "subnet" || v === undefined) continue;
           if (k === "delete" && Array.isArray(v)) body.delete = v.join(",");
           else body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
         }
@@ -439,14 +453,19 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
     "delete_sdn_subnet",
     {
       title: "Delete SDN subnet",
-      description: "Delete an SDN subnet.",
+      description:
+        "Delete an SDN subnet. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
-        .object({ vnet: z.string().min(1), subnet: z.string().min(1), approval_token: z.string().optional() })
+        .object({
+          vnet: z.string().min(1),
+          subnet: z.string().min(1),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
+        })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ vnet, subnet, approval_token }) =>
-      runTool(ctx, "delete_sdn_subnet", { vnet, subnet, approval_token }, async () => {
+    async ({ vnet, subnet, confirm }) =>
+      runTool(ctx, "delete_sdn_subnet", { vnet, subnet, confirm }, async () => {
         await ctx.client.delete(paths.sdnSubnet(vnet, subnet));
         return jsonResult(`Subnet ${subnet} deleted from ${vnet}.`, { subnet });
       }),
@@ -458,12 +477,17 @@ export function registerSdnTools(server: McpServer, ctx: ToolContext): void {
     "apply_sdn",
     {
       title: "Apply SDN changes",
-      description: "Push pending SDN changes to the cluster (rebuilds config and reloads daemons). HIGH RISK.",
-      inputSchema: z.object({}).strict(),
+      description:
+        "Push pending SDN changes to the cluster (rebuilds config and reloads daemons). HIGH RISK — ask the user to confirm before invoking.",
+      inputSchema: z
+        .object({
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
+        })
+        .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async () =>
-      runTool(ctx, "apply_sdn", {}, async () => {
+    async ({ confirm }) =>
+      runTool(ctx, "apply_sdn", { confirm }, async () => {
         await ctx.client.put("/cluster/sdn", { pending: 0 });
         return jsonResult(`SDN apply triggered.`, { status: "ok" });
       }),

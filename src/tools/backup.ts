@@ -109,7 +109,7 @@ export function registerBackupTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Restore backup",
       description:
-        "Restore a vzdump archive as a new VM/container. Requires approval_token for destructive operations.",
+        "Restore a vzdump archive as a new VM/container. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1).describe("Target node for the restored VM/container"),
@@ -117,7 +117,7 @@ export function registerBackupTools(server: McpServer, ctx: ToolContext): void {
           vmid: z.string().regex(/^\d+$/).describe("New VM/container ID for the restored machine"),
           storage: z.string().optional().describe("Target storage for disks"),
           unique: z.boolean().default(true).describe("Generate unique MAC addresses"),
-          approval_token: z.string().optional().describe("Approval token for high-risk operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: {
@@ -127,11 +127,11 @@ export function registerBackupTools(server: McpServer, ctx: ToolContext): void {
         openWorldHint: true,
       },
     },
-    async ({ node, archive, vmid, storage, unique, approval_token }) =>
+    async ({ node, archive, vmid, storage, unique, confirm }) =>
       runTool(
         ctx,
         "restore_backup",
-        { node, archive, vmid, storage, unique, approval_token },
+        { node, archive, vmid, storage, unique, confirm },
         async () => {
           // Heuristic: vzdump-qemu-* vs vzdump-lxc-*
           const isLxc = archive.includes("lxc");
@@ -154,13 +154,13 @@ export function registerBackupTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Delete backup file",
       description:
-        "Permanently delete a vzdump backup file. Requires approval_token for destructive operation.",
+        "Permanently delete a vzdump backup file. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           storage: z.string().min(1),
           volid: z.string().min(1).describe("Backup volume ID"),
-          approval_token: z.string().optional().describe("Approval token for destructive operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: {
@@ -170,8 +170,8 @@ export function registerBackupTools(server: McpServer, ctx: ToolContext): void {
         openWorldHint: true,
       },
     },
-    async ({ node, storage, volid, approval_token }) =>
-      runTool(ctx, "delete_backup", { node, storage, volid, approval_token }, async () => {
+    async ({ node, storage, volid, confirm }) =>
+      runTool(ctx, "delete_backup", { node, storage, volid, confirm }, async () => {
         await ctx.client.delete(paths.storageContent(node, storage, volid));
         return jsonResult(`Backup deleted.`, { node, storage, volid });
       }),

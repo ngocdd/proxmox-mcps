@@ -137,10 +137,7 @@ export function registerJobsTools(server: McpServer, ctx: ToolContext): void {
       description:
         "Re-invoke the originating tool for a failed/cancelled job, using the stored retry recipe. Returns the new job_id.",
       inputSchema: z
-        .object({
-          job_id: z.string().uuid().describe("Job identifier"),
-          approval_token: z.string().optional().describe("Required if the original tool was destructive"),
-        })
+        .object({ job_id: z.string().uuid().describe("Job identifier") })
         .strict(),
       annotations: {
         readOnlyHint: false,
@@ -149,8 +146,8 @@ export function registerJobsTools(server: McpServer, ctx: ToolContext): void {
         openWorldHint: true,
       },
     },
-    async ({ job_id, approval_token }) =>
-      runTool(ctx, "retry_job", { job_id, approval_token }, async () => {
+    async ({ job_id }) =>
+      runTool(ctx, "retry_job", { job_id }, async () => {
         const original = ctx.jobs.get(job_id);
         if (!original) return errResult(`Job ${job_id} not found.`);
         if (!original.retry_spec) return errResult(`Job ${job_id} has no stored retry recipe.`);

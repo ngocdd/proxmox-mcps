@@ -57,7 +57,7 @@ export function registerHaTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Add HA resource",
       description:
-        "Make a VM or container HA-managed by the cluster. HIGH RISK — service will be restarted on failure.",
+        "Make a VM or container HA-managed by the cluster. HIGH RISK — service will be restarted on failure. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           sid: z.string().min(1).describe("Service ID, e.g. 'vm:100' or 'ct:101'"),
@@ -66,7 +66,7 @@ export function registerHaTools(server: McpServer, ctx: ToolContext): void {
           max_relocate: z.number().int().min(0).max(10).optional().describe("Max relocate attempts"),
           state: z.enum(["started", "stopped", "enabled", "disabled", "ignored"]).default("started"),
           comment: z.string().max(1024).optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: {
@@ -92,11 +92,12 @@ export function registerHaTools(server: McpServer, ctx: ToolContext): void {
     "remove_ha_resource",
     {
       title: "Remove HA resource",
-      description: "Stop HA management of a VM or container.",
+      description:
+        "Stop HA management of a VM or container. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           sid: z.string().min(1),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: {
@@ -106,8 +107,8 @@ export function registerHaTools(server: McpServer, ctx: ToolContext): void {
         openWorldHint: true,
       },
     },
-    async ({ sid, approval_token }) =>
-      runTool(ctx, "remove_ha_resource", { sid, approval_token }, async () => {
+    async ({ sid, confirm }) =>
+      runTool(ctx, "remove_ha_resource", { sid, confirm }, async () => {
         await ctx.client.delete(paths.haResource(sid));
         return jsonResult(`HA resource ${sid} removed.`, { sid });
       }),
@@ -190,7 +191,7 @@ export function registerHaTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Create HA group",
       description:
-        "Create an HA group with a list of preferred nodes and a failover/restart policy.",
+        "Create an HA group with a list of preferred nodes and a failover/restart policy. HIGH RISK — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           group: z.string().min(1).regex(/^[a-zA-Z0-9_\-]+$/).describe("Group name"),
@@ -198,7 +199,7 @@ export function registerHaTools(server: McpServer, ctx: ToolContext): void {
           nofailback: z.boolean().optional(),
           restricted: z.boolean().optional(),
           comment: z.string().max(1024).optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: {
@@ -228,7 +229,8 @@ export function registerHaTools(server: McpServer, ctx: ToolContext): void {
     "update_ha_group",
     {
       title: "Update HA group",
-      description: "Update an HA group (nodes, failback, restricted, comment).",
+      description:
+        "Update an HA group (nodes, failback, restricted, comment). HIGH RISK — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           group: z.string().min(1),
@@ -237,7 +239,7 @@ export function registerHaTools(server: McpServer, ctx: ToolContext): void {
           restricted: z.boolean().optional(),
           comment: z.string().max(1024).optional(),
           delete: z.array(z.string()).optional().describe("Properties to delete (e.g. ['comment'])"),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: {
@@ -265,11 +267,11 @@ export function registerHaTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Delete HA group",
       description:
-        "Delete an HA group. Resources assigned to it revert to the default group.",
+        "Delete an HA group. Resources assigned to it revert to the default group. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           group: z.string().min(1),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: {
@@ -279,8 +281,8 @@ export function registerHaTools(server: McpServer, ctx: ToolContext): void {
         openWorldHint: true,
       },
     },
-    async ({ group, approval_token }) =>
-      runTool(ctx, "delete_ha_group", { group, approval_token }, async () => {
+    async ({ group, confirm }) =>
+      runTool(ctx, "delete_ha_group", { group, confirm }, async () => {
         await ctx.client.delete(paths.haGroup(group));
         return jsonResult(`HA group ${group} deleted.`, { group });
       }),

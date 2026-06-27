@@ -179,11 +179,12 @@ export function registerBackupScheduleTools(server: McpServer, ctx: ToolContext)
     "delete_backup_job",
     {
       title: "Delete backup schedule",
-      description: "Delete a scheduled backup job (existing backups are not deleted).",
+      description:
+        "Delete a scheduled backup job (existing backups are not deleted). DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           id: z.string().min(1),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: {
@@ -193,8 +194,8 @@ export function registerBackupScheduleTools(server: McpServer, ctx: ToolContext)
         openWorldHint: true,
       },
     },
-    async ({ id, approval_token }) =>
-      runTool(ctx, "delete_backup_job", { id, approval_token }, async () => {
+    async ({ id, confirm }) =>
+      runTool(ctx, "delete_backup_job", { id, confirm }, async () => {
         await ctx.client.delete(paths.backupJob(id));
         return jsonResult(`Backup job ${id} deleted.`, { id });
       }),

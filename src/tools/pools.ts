@@ -119,11 +119,12 @@ export function registerPoolTools(server: McpServer, ctx: ToolContext): void {
     "delete_pool",
     {
       title: "Delete resource pool",
-      description: "Permanently delete a resource pool. Members are NOT deleted; they remain orphaned.",
+      description:
+        "Permanently delete a resource pool. Members are NOT deleted; they remain orphaned. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           poolid: z.string().min(1),
-          approval_token: z.string().optional().describe("Approval token for destructive operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: {
@@ -133,8 +134,8 @@ export function registerPoolTools(server: McpServer, ctx: ToolContext): void {
         openWorldHint: true,
       },
     },
-    async ({ poolid, approval_token }) =>
-      runTool(ctx, "delete_pool", { poolid, approval_token }, async () => {
+    async ({ poolid, confirm }) =>
+      runTool(ctx, "delete_pool", { poolid, confirm }, async () => {
         await ctx.client.delete(paths.pool(poolid));
         return jsonResult(`Pool ${poolid} deleted.`, { poolid });
       }),

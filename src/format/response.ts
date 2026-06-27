@@ -7,7 +7,7 @@
  */
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ZodError } from "zod";
-import { ApprovalRequiredError, ProxmoxApiError } from "../proxmox/errors.js";
+import { ProxmoxApiError } from "../proxmox/errors.js";
 import type { ToolContext } from "../tools/context.js";
 
 /**
@@ -76,13 +76,6 @@ export function tableResult(header: string, rows: Record<string, unknown>[]): Ca
  * Map any thrown error into a stable error result.
  */
 export function errorResult(error: unknown): CallToolResult {
-  if (error instanceof ApprovalRequiredError) {
-    return errResult(
-      `❌ ${error.message}\n\n` +
-        `Provide an 'approval_token' argument equal to PROXMOX_MCP_APPROVAL_TOKEN, ` +
-        `or set PROXMOX_DANGEROUSLY_ALLOW_DESTRUCTIVE=true in the MCP server environment.`,
-    );
-  }
   if (error instanceof ZodError) {
     return errResult(
       `❌ Invalid input:\n${error.issues.map((i) => `  - ${i.path.join(".") || "(root)"}: ${i.message}`).join("\n")}`,
@@ -103,6 +96,11 @@ export function errorResult(error: unknown): CallToolResult {
 /**
  * Standard envelope for every tool handler. Catches errors and maps to MCP
  * shape; tracks latency for logging; observes via policy gate.
+ *
+ * For high/destructive tools, if the caller has not yet passed `confirm: true`,
+ * the policy gate returns a user-facing confirmation prompt. We surface that
+ * prompt as a *non-error* text result so the model relays it to the user and
+ * re-invokes the tool with `confirm: true` once they reply "yes".
  */
 export async function runTool(
   ctx: ToolContext,
@@ -112,10 +110,15 @@ export async function runTool(
 ): Promise<CallToolResult> {
   const start = Date.now();
   const toolLogger = ctx.logger.child({ tool: name });
+  const decision = ctx.policy.assertAllowed(name, args);
+  if (!decision.allowed) {
+    toolLogger.info(
+      { args: scrubArgs(args), elapsedMs: Date.now() - start, awaiting: "user_confirmation" },
+      "tool.confirm",
+    );
+    return ok(decision.prompt);
+  }
   try {
-    // Enforce policy (may throw ApprovalRequiredError)
-    ctx.policy.assertAllowed(name, args);
-
     const result = await fn();
     const elapsedMs = Date.now() - start;
     toolLogger.info({ args: scrubArgs(args), elapsedMs, ok: true }, "tool.ok");
@@ -133,7 +136,7 @@ export async function runTool(
 function scrubArgs(args: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(args)) {
-    if (k === "approval_token" || k === "password" || k === "new_password" || k === "cipassword") {
+    if (k === "password" || k === "new_password" || k === "cipassword") {
       out[k] = "[REDACTED]";
     } else {
       out[k] = v;

@@ -114,13 +114,14 @@ export function registerIsoTools(server: McpServer, ctx: ToolContext): void {
     "delete_iso",
     {
       title: "Delete ISO/template",
-      description: "Permanently delete an ISO or template. Requires approval_token for high-risk operation.",
+      description:
+        "Permanently delete an ISO or template. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           storage: z.string().min(1),
           filename: z.string().min(1).describe("Filename (e.g. 'ubuntu-22.04.iso')"),
-          approval_token: z.string().optional().describe("Approval token for high-risk operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: {
@@ -130,8 +131,8 @@ export function registerIsoTools(server: McpServer, ctx: ToolContext): void {
         openWorldHint: true,
       },
     },
-    async ({ node, storage, filename, approval_token }) =>
-      runTool(ctx, "delete_iso", { node, storage, filename, approval_token }, async () => {
+    async ({ node, storage, filename, confirm }) =>
+      runTool(ctx, "delete_iso", { node, storage, filename, confirm }, async () => {
         const volid = `${storage}:${filename}`;
         await ctx.client.delete(paths.storageContent(node, storage, volid));
         return jsonResult(`ISO/template deleted.`, { node, storage, volid });

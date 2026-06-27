@@ -126,7 +126,7 @@ export function registerReplicationTools(server: McpServer, ctx: ToolContext): v
       runTool(ctx, "update_replication_job", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(args)) {
-          if (k === "id" || k === "approval_token" || v === undefined) continue;
+          if (k === "id" || v === undefined) continue;
           if (k === "delete" && Array.isArray(v)) body.delete = v.join(",");
           else body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
         }
@@ -139,14 +139,19 @@ export function registerReplicationTools(server: McpServer, ctx: ToolContext): v
     "delete_replication_job",
     {
       title: "Delete replication job",
-      description: "Delete a replication job. Existing replicated snapshots are kept unless explicitly pruned.",
+      description:
+        "Delete a replication job. Existing replicated snapshots are kept unless explicitly pruned. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
-        .object({ id: z.string().min(1), force: z.boolean().optional() })
+        .object({
+          id: z.string().min(1),
+          force: z.boolean().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
+        })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ id, force }) =>
-      runTool(ctx, "delete_replication_job", { id, force }, async () => {
+    async ({ id, force, confirm }) =>
+      runTool(ctx, "delete_replication_job", { id, force, confirm }, async () => {
         const params: Record<string, unknown> = {};
         if (force) params.force = 1;
         await ctx.client.delete(paths.replicationJob(id), params);

@@ -50,19 +50,20 @@ export function registerNodeDisksTools(server: McpServer, ctx: ToolContext): voi
     "init_node_disk",
     {
       title: "Initialize disk with GPT",
-      description: "Initialize a disk with a fresh GPT partition table. DESTRUCTIVE — wipes existing data.",
+      description:
+        "Initialize a disk with a fresh GPT partition table. DESTRUCTIVE — wipes existing data. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           disk: z.string().min(1).describe("Disk path (e.g. /dev/sdb)"),
           uuid: z.string().optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ node, disk, uuid, approval_token }) =>
-      runTool(ctx, "init_node_disk", { node, disk, uuid, approval_token }, async () => {
+    async ({ node, disk, uuid, confirm }) =>
+      runTool(ctx, "init_node_disk", { node, disk, uuid, confirm }, async () => {
         const body: Record<string, unknown> = {};
         if (uuid) body.uuid = uuid;
         const upid = await ctx.client.post<string>(paths.nodeDiskInit(node, disk), body);
@@ -75,18 +76,19 @@ export function registerNodeDisksTools(server: McpServer, ctx: ToolContext): voi
     "wipe_node_disk",
     {
       title: "Wipe disk",
-      description: "Wipe a disk by writing zeros to all blocks. DESTRUCTIVE — irrecoverable.",
+      description:
+        "Wipe a disk by writing zeros to all blocks. DESTRUCTIVE — irrecoverable. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           disk: z.string().min(1).describe("Disk path (e.g. /dev/sdb)"),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ node, disk, approval_token }) =>
-      runTool(ctx, "wipe_node_disk", { node, disk, approval_token }, async () => {
+    async ({ node, disk, confirm }) =>
+      runTool(ctx, "wipe_node_disk", { node, disk, confirm }, async () => {
         const upid = await ctx.client.put<string>(paths.nodeDiskWipe(node, disk));
         const job = trackUpid(ctx, upid, { node, tool: "wipe_node_disk", args: { node, disk } });
         return jsonResult(`Disk wipe started on ${disk}.`, { job_id: job.job_id, upid });
@@ -97,7 +99,8 @@ export function registerNodeDisksTools(server: McpServer, ctx: ToolContext): voi
     "create_node_zfs",
     {
       title: "Create ZFS pool",
-      description: "Create a ZFS pool across one or more disks. DESTRUCTIVE — wipes target disks.",
+      description:
+        "Create a ZFS pool across one or more disks. DESTRUCTIVE — wipes target disks. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
@@ -106,16 +109,16 @@ export function registerNodeDisksTools(server: McpServer, ctx: ToolContext): voi
           raidlevel: z.enum(["single", "mirror", "raid10", "raidz", "raidz2", "raidz3"]).optional(),
           compression: z.enum(["on", "off", "lz4", "lzjb", "zle", "gzip", "gzip-9", "zstd", "zstd-fast"]).optional(),
           ashift: z.number().int().min(9).max(16).optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ node, name, devices, raidlevel, compression, ashift, approval_token }) =>
+    async ({ node, name, devices, raidlevel, compression, ashift, confirm }) =>
       runTool(
         ctx,
         "create_node_zfs",
-        { node, name, devices, raidlevel, approval_token },
+        { node, name, devices, raidlevel, confirm },
         async () => {
           const body: Record<string, unknown> = { name, devices };
           if (raidlevel) body.raidlevel = raidlevel;

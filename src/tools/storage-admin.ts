@@ -32,7 +32,7 @@ export function registerStorageAdminTools(server: McpServer, ctx: ToolContext): 
     {
       title: "Create storage pool",
       description:
-        "Create a new storage pool (lvm, zfspool, nfs, cifs, pbs, dir, btrfs, etc.). HIGH RISK — wrong config can lose data.",
+        "Create a new storage pool (lvm, zfspool, nfs, cifs, pbs, dir, btrfs, etc.). HIGH RISK — wrong config can lose data. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           storage: z.string().min(1).regex(/^[a-zA-Z0-9_\-]+$/).describe("Storage ID"),
@@ -75,7 +75,7 @@ export function registerStorageAdminTools(server: McpServer, ctx: ToolContext): 
           datastore: z.string().optional(),
           namespace: z.string().optional(),
           fingerprint: z.string().optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
@@ -84,7 +84,7 @@ export function registerStorageAdminTools(server: McpServer, ctx: ToolContext): 
       runTool(ctx, "create_storage", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = { storage: args.storage, type: args.type };
         for (const [k, v] of Object.entries(args)) {
-          if (k === "storage" || k === "type" || k === "approval_token" || v === undefined) continue;
+          if (k === "storage" || k === "type" || v === undefined) continue;
           if (k === "content" && Array.isArray(v)) body.content = v.join(",");
           else if (k === "nodes" && Array.isArray(v)) body.nodes = v.join(",");
           else body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
@@ -98,7 +98,8 @@ export function registerStorageAdminTools(server: McpServer, ctx: ToolContext): 
     "update_storage",
     {
       title: "Update storage pool",
-      description: "Update an existing storage pool. HIGH RISK — may disrupt running VMs.",
+      description:
+        "Update an existing storage pool. HIGH RISK — may disrupt running VMs. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           storage: z.string().min(1),
@@ -108,7 +109,7 @@ export function registerStorageAdminTools(server: McpServer, ctx: ToolContext): 
           shared: z.boolean().optional(),
           prune_backups: z.string().optional(),
           maxfiles: z.number().int().optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
@@ -117,7 +118,7 @@ export function registerStorageAdminTools(server: McpServer, ctx: ToolContext): 
       runTool(ctx, "update_storage", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(args)) {
-          if (k === "storage" || k === "approval_token" || v === undefined) continue;
+          if (k === "storage" || v === undefined) continue;
           if (k === "content" && Array.isArray(v)) body.content = v.join(",");
           else if (k === "nodes" && Array.isArray(v)) body.nodes = v.join(",");
           else body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
@@ -132,17 +133,17 @@ export function registerStorageAdminTools(server: McpServer, ctx: ToolContext): 
     {
       title: "Delete storage pool",
       description:
-        "Delete a storage pool from Proxmox config. Underlying disk/files are NOT removed (Proxmox only un-registers the pool). DESTRUCTIVE — VMs/CTs using it lose access.",
+        "Delete a storage pool from Proxmox config. Underlying disk/files are NOT removed (Proxmox only un-registers the pool). DESTRUCTIVE — VMs/CTs using it lose access. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           storage: z.string().min(1),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ storage, approval_token }) =>
-      runTool(ctx, "delete_storage", { storage, approval_token }, async () => {
+    async ({ storage, confirm }) =>
+      runTool(ctx, "delete_storage", { storage, confirm }, async () => {
         await ctx.client.delete(paths.storageUpdate(storage));
         return jsonResult(`Storage ${storage} deleted.`, { storage });
       }),

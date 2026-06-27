@@ -349,13 +349,13 @@ export function registerContainerCrudTools(server: McpServer, ctx: ToolContext):
     {
       title: "Delete container",
       description:
-        "Permanently delete a container and its data. DESTRUCTIVE. Requires approval_token or dangerously_allow_destructive.",
+        "Permanently delete a container and its data. DESTRUCTIVE — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           vmid: z.string().regex(/^\d+$/),
           force: z.boolean().default(false).describe("Force deletion even if running"),
-          approval_token: z.string().optional().describe("Approval token for destructive operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: {

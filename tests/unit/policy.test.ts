@@ -3,12 +3,10 @@ import {
   PolicyGate,
   registerRisk,
 } from "../../src/safety/policy.js";
-import { ApprovalRequiredError } from "../../src/proxmox/errors.js";
 import { buildAppConfig } from "../../src/config/types.js";
 import { parseEnv } from "../../src/config/env.js";
 
 function makeConfig(overrides: Partial<{
-  approvalToken: string | null;
   dangerouslyAllow: boolean;
   auditOnly: boolean;
 }> = {}) {
@@ -19,7 +17,6 @@ function makeConfig(overrides: Partial<{
     PROXMOX_TOKEN_VALUE: "12345678-1234-1234-1234-123456789012",
   });
   const cfg = buildAppConfig(env);
-  cfg.safety.approvalToken = overrides.approvalToken ?? null;
   cfg.safety.dangerouslyAllowDestructive = overrides.dangerouslyAllow ?? false;
   cfg.safety.auditOnly = overrides.auditOnly ?? false;
   return cfg;
@@ -29,53 +26,69 @@ describe("PolicyGate", () => {
   it("allows low-risk tools unconditionally", () => {
     registerRisk("test_low", "low");
     const gate = new PolicyGate({ safety: makeConfig().safety });
-    expect(gate.assertAllowed("test_low", {})).toBe(true);
+    const decision = gate.assertAllowed("test_low", {});
+    expect(decision.allowed).toBe(true);
   });
 
-  it("allows medium-risk tools (just logs in audit mode)", () => {
+  it("allows medium-risk tools (logs in audit mode)", () => {
     registerRisk("test_medium", "medium");
     const gate = new PolicyGate({ safety: makeConfig({ auditOnly: true }).safety });
-    expect(gate.assertAllowed("test_medium", { foo: "bar" })).toBe(true);
+    const decision = gate.assertAllowed("test_medium", { foo: "bar" });
+    expect(decision.allowed).toBe(true);
   });
 
-  it("blocks high-risk tools without approval", () => {
+  it("returns a confirmation prompt for high-risk tools without confirm=true", () => {
     registerRisk("test_high", "high");
     const gate = new PolicyGate({ safety: makeConfig().safety });
-    expect(() => gate.assertAllowed("test_high", {})).toThrow(ApprovalRequiredError);
+    const decision = gate.assertAllowed("test_high", { node: "pve", vmid: "100" });
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) {
+      expect(decision.prompt).toMatch(/Confirmation required/);
+      expect(decision.prompt).toMatch(/node=pve/);
+      expect(decision.prompt).toMatch(/vmid=100/);
+      expect(decision.prompt).toMatch(/confirm: true/);
+    }
+  });
+
+  it("allows high-risk tools with confirm=true", () => {
+    registerRisk("test_high", "high");
+    const gate = new PolicyGate({ safety: makeConfig().safety });
+    const decision = gate.assertAllowed("test_high", { confirm: true });
+    expect(decision.allowed).toBe(true);
+  });
+
+  it("rejects high-risk tools with confirm=false", () => {
+    registerRisk("test_high", "high");
+    const gate = new PolicyGate({ safety: makeConfig().safety });
+    const decision = gate.assertAllowed("test_high", { confirm: false });
+    expect(decision.allowed).toBe(false);
   });
 
   it("allows high-risk tools with dangerously_allow_destructive", () => {
     registerRisk("test_high", "high");
     const gate = new PolicyGate({ safety: makeConfig({ dangerouslyAllow: true }).safety });
-    expect(gate.assertAllowed("test_high", {})).toBe(true);
+    const decision = gate.assertAllowed("test_high", {});
+    expect(decision.allowed).toBe(true);
   });
 
-  it("allows high-risk tools with matching approval_token", () => {
-    registerRisk("test_high", "high");
-    const gate = new PolicyGate({
-      safety: makeConfig({ approvalToken: "secret-token-1234" }).safety,
-    });
-    expect(gate.assertAllowed("test_high", { approval_token: "secret-token-1234" })).toBe(true);
-  });
-
-  it("rejects high-risk tools with wrong approval_token", () => {
-    registerRisk("test_high", "high");
-    const gate = new PolicyGate({
-      safety: makeConfig({ approvalToken: "secret-token-1234" }).safety,
-    });
-    expect(() => gate.assertAllowed("test_high", { approval_token: "wrong-token" })).toThrow(
-      ApprovalRequiredError,
-    );
-  });
-
-  it("blocks destructive tools without approval", () => {
+  it("returns a confirmation prompt for destructive tools without confirm=true", () => {
     registerRisk("test_destructive", "destructive");
     const gate = new PolicyGate({ safety: makeConfig().safety });
-    expect(() => gate.assertAllowed("test_destructive", {})).toThrow(ApprovalRequiredError);
+    const decision = gate.assertAllowed("test_destructive", { node: "pve", vmid: "100" });
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) {
+      expect(decision.prompt).toMatch(/DESTRUCTIVE/);
+    }
   });
 
   it("treats unknown tools as low risk", () => {
     const gate = new PolicyGate({ safety: makeConfig().safety });
-    expect(gate.assertAllowed("not_in_registry", {})).toBe(true);
+    expect(gate.assertAllowed("not_in_registry", {}).allowed).toBe(true);
+  });
+
+  it("enforceAllowed throws ConfirmationRequiredError for unconfirmed high-risk calls", () => {
+    registerRisk("test_high_throw", "high");
+    const gate = new PolicyGate({ safety: makeConfig().safety });
+    expect(() => gate.enforceAllowed("test_high_throw", {})).toThrow(/Confirmation required/);
   });
 });

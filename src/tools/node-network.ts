@@ -28,7 +28,7 @@ export function registerNodeNetworkTools(server: McpServer, ctx: ToolContext): v
     {
       title: "Create network interface",
       description:
-        "Create a network interface (bond, bridge, VLAN, or physical). HIGH RISK — wrong config can disconnect the node.",
+        "Create a network interface (bond, bridge, VLAN, or physical). HIGH RISK — wrong config can disconnect the node. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
@@ -44,7 +44,7 @@ export function registerNodeNetworkTools(server: McpServer, ctx: ToolContext): v
           comments: z.string().optional(),
           vlan_id: z.number().int().min(1).max(4094).optional(),
           vlan_raw_device: z.string().optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
@@ -53,7 +53,7 @@ export function registerNodeNetworkTools(server: McpServer, ctx: ToolContext): v
       runTool(ctx, "create_node_network", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = { iface: args.iface, type: args.type };
         for (const [k, v] of Object.entries(args)) {
-          if (k === "node" || k === "iface" || k === "type" || k === "approval_token" || v === undefined) continue;
+          if (k === "node" || k === "iface" || k === "type" || v === undefined) continue;
           body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
         }
         await ctx.client.post(paths.nodeNetwork(args.node as string), body);
@@ -65,7 +65,8 @@ export function registerNodeNetworkTools(server: McpServer, ctx: ToolContext): v
     "update_node_network",
     {
       title: "Update network interface",
-      description: "Update an existing network interface. HIGH RISK.",
+      description:
+        "Update an existing network interface. HIGH RISK — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
@@ -77,7 +78,7 @@ export function registerNodeNetworkTools(server: McpServer, ctx: ToolContext): v
           comments: z.string().optional(),
           autostart: z.boolean().optional(),
           delete: z.array(z.string()).optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
@@ -86,7 +87,7 @@ export function registerNodeNetworkTools(server: McpServer, ctx: ToolContext): v
       runTool(ctx, "update_node_network", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(args)) {
-          if (k === "node" || k === "iface" || k === "approval_token" || v === undefined) continue;
+          if (k === "node" || k === "iface" || v === undefined) continue;
           if (k === "delete" && Array.isArray(v)) body.delete = v.join(",");
           else body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
         }
@@ -99,18 +100,19 @@ export function registerNodeNetworkTools(server: McpServer, ctx: ToolContext): v
     "delete_node_network",
     {
       title: "Delete network interface",
-      description: "Delete a network interface. HIGH RISK — will disconnect any VM/CT using it.",
+      description:
+        "Delete a network interface. HIGH RISK — will disconnect any VM/CT using it. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           iface: z.string().min(1),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this destructive action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ node, iface, approval_token }) =>
-      runTool(ctx, "delete_node_network", { node, iface, approval_token }, async () => {
+    async ({ node, iface, confirm }) =>
+      runTool(ctx, "delete_node_network", { node, iface, confirm }, async () => {
         await ctx.client.delete(paths.nodeIface(node, iface));
         return jsonResult(`Interface ${iface} deleted on ${node}.`, { iface });
       }),

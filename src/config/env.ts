@@ -64,7 +64,6 @@ const EnvSchema = z
     // Safety
     PROXMOX_DEV_MODE: BoolFromString.default(false),
     PROXMOX_DANGEROUSLY_ALLOW_DESTRUCTIVE: BoolFromString.default(false),
-    PROXMOX_MCP_APPROVAL_TOKEN: z.string().min(8).optional().or(z.literal("")),
     PROXMOX_MCP_AUDIT_ONLY: BoolFromString.default(false),
 
     // Logging
@@ -127,9 +126,6 @@ const EnvSchema = z
 
     // Guard: at least one of key_file or password for SSH (warning only)
     // We don't enforce — user might want password prompt via agent.
-
-    // Guard: approval_token or dangerously_allow_destructive should be set
-    // for any use of destructive tools. We log a warning at startup.
   });
 
 export type EnvInput = z.infer<typeof EnvSchema>;

@@ -20,7 +20,6 @@ export interface ProxmoxConfig {
 export interface SafetyConfig {
   devMode: boolean;
   dangerouslyAllowDestructive: boolean;
-  approvalToken: string | null;
   auditOnly: boolean;
 }
 
@@ -78,10 +77,6 @@ export function buildAppConfig(env: EnvInput): AppConfig {
     safety: {
       devMode: env.PROXMOX_DEV_MODE,
       dangerouslyAllowDestructive: env.PROXMOX_DANGEROUSLY_ALLOW_DESTRUCTIVE,
-      approvalToken:
-        env.PROXMOX_MCP_APPROVAL_TOKEN && env.PROXMOX_MCP_APPROVAL_TOKEN.length >= 8
-          ? env.PROXMOX_MCP_APPROVAL_TOKEN
-          : null,
       auditOnly: env.PROXMOX_MCP_AUDIT_ONLY,
     },
     ssh: {

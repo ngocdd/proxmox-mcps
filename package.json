@@ -1,22 +1,22 @@
 {
   "name": "proxmox-mcps",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for Proxmox VE — AI-driven QEMU VM and LXC container management",
   "license": "MIT",
   "author": "Oliver <ngocdd94@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ngocdd/proxmox-mcp.git"
+    "url": "git+https://github.com/ngocdd/proxmox-mcps.git"
   },
   "bugs": {
-    "url": "https://github.com/ngocdd/proxmox-mcp/issues"
+    "url": "https://github.com/ngocdd/proxmox-mcps/issues"
   },
-  "homepage": "https://github.com/ngocdd/proxmox-mcp#readme",
+  "homepage": "https://github.com/ngocdd/proxmox-mcps#readme",
   "type": "module",
   "bin": {
-    "proxmox-mcp": "dist/index.js",
-    "proxmox-mcp-check-config": "dist/cli/check-config.js",
-    "proxmox-mcp-print-tools": "dist/cli/print-tools.js"
+    "proxmox-mcps": "dist/index.js",
+    "proxmox-mcps-check-config": "dist/cli/check-config.js",
+    "proxmox-mcps-print-tools": "dist/cli/print-tools.js"
   },
   "main": "dist/index.js",
   "files": [
@@ -53,22 +53,20 @@
     "pino": "^9.5.0",
     "pino-pretty": "^11.3.0",
     "ssh2": "^1.16.0",
-    "uuid": "^10.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.17.0",
     "@types/ssh2": "^1.15.0",
-    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.12.0",
     "@typescript-eslint/parser": "^8.12.0",
-    "@vitest/coverage-v8": "^2.1.4",
+    "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^9.13.0",
     "nock": "^14.0.1",
     "prettier": "^3.3.3",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.4"
+    "vitest": "^4.1.9"
   }
 }

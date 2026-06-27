@@ -102,12 +102,12 @@ export function registerVmMigrationTools(server: McpServer, ctx: ToolContext): v
     {
       title: "Convert VM to template",
       description:
-        "Convert a VM into a Proxmox template (subsequent clones can use it as a source). HIGH RISK — original VM becomes read-only.",
+        "Convert a VM into a Proxmox template (subsequent clones can use it as a source). HIGH RISK — original VM becomes read-only. Ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           vmid: z.string().regex(/^\d+$/),
-          approval_token: z.string().optional().describe("Approval token for high-risk operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: {
@@ -117,11 +117,11 @@ export function registerVmMigrationTools(server: McpServer, ctx: ToolContext): v
         openWorldHint: true,
       },
     },
-    async ({ node, vmid, approval_token }) =>
+    async ({ node, vmid, confirm }) =>
       runTool(
         ctx,
         "convert_vm_to_template",
-        { node, vmid, approval_token },
+        { node, vmid, confirm },
         async () => {
           const upid = await ctx.client.post<string>(paths.qemuTemplate(node, vmid));
           const job = trackUpid(ctx, upid, {

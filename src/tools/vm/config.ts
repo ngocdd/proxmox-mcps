@@ -68,13 +68,13 @@ export function registerVmConfigTools(server: McpServer, ctx: ToolContext): void
     {
       title: "Update VM config",
       description:
-        "Patch one or more VM configuration keys (cores, memory, scsi0 size, net0, ostype, etc.). Use current=true to update a running VM where supported. Only a safe allowlist of keys is accepted — keys that can attach host PCI/USB devices, override SMBIOS, or change the QEMU machine type are rejected.",
+        "Patch one or more VM configuration keys (cores, memory, scsi0 size, net0, ostype, etc.). Use current=true to update a running VM where supported. Only a safe allowlist of keys is accepted — keys that can attach host PCI/USB devices, override SMBIOS, or change the QEMU machine type are rejected. HIGH RISK — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           vmid: z.string().regex(/^\d+$/),
           current: z.boolean().optional().describe("Apply to running VM where supported"),
-          approval_token: z.string().optional().describe("Approval token for high-risk operation"),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
           // Record of config keys; validation of each key happens in the handler.
           config: z
             .record(z.union([z.string(), z.number(), z.boolean()]))

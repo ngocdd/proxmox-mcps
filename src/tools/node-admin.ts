@@ -87,7 +87,8 @@ export function registerNodeAdminTools(server: McpServer, ctx: ToolContext): voi
     "node_apt_repos_change",
     {
       title: "Change apt repositories",
-      description: "Add, modify, or remove apt repository entries on a node. HIGH RISK.",
+      description:
+        "Add, modify, or remove apt repository entries on a node. HIGH RISK — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
@@ -99,7 +100,7 @@ export function registerNodeAdminTools(server: McpServer, ctx: ToolContext): voi
           enabled: z.boolean().optional(),
           comment: z.string().optional(),
           index: z.number().int().optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: {
@@ -113,7 +114,7 @@ export function registerNodeAdminTools(server: McpServer, ctx: ToolContext): voi
       runTool(ctx, "node_apt_repos_change", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(args)) {
-          if (k === "node" || k === "approval_token" || v === undefined) continue;
+          if (k === "node" || v === undefined) continue;
           body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
         }
         await ctx.client.post(paths.nodeAptRepos(args.node as string), body);
@@ -295,7 +296,8 @@ export function registerNodeAdminTools(server: McpServer, ctx: ToolContext): voi
     "update_node_config",
     {
       title: "Update node config",
-      description: "Update node description, ACPI settings, wake-on-lan, etc. HIGH RISK.",
+      description:
+        "Update node description, ACPI settings, wake-on-lan, etc. HIGH RISK — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
@@ -303,7 +305,7 @@ export function registerNodeAdminTools(server: McpServer, ctx: ToolContext): voi
           acpi: z.boolean().optional(),
           startall_onboot_delay: z.number().int().optional(),
           wakeonlan: z.boolean().optional(),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
@@ -312,7 +314,7 @@ export function registerNodeAdminTools(server: McpServer, ctx: ToolContext): voi
       runTool(ctx, "update_node_config", args as Record<string, unknown>, async () => {
         const body: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(args)) {
-          if (k === "node" || k === "approval_token" || v === undefined) continue;
+          if (k === "node" || v === undefined) continue;
           body[k] = typeof v === "boolean" ? (v ? 1 : 0) : v;
         }
         await ctx.client.put(paths.nodeConfig(args.node as string), body);
@@ -450,12 +452,13 @@ export function registerNodeAdminTools(server: McpServer, ctx: ToolContext): voi
     "set_node_subscription",
     {
       title: "Set subscription key",
-      description: "Set the Proxmox subscription key on a node. HIGH RISK.",
+      description:
+        "Set the Proxmox subscription key on a node. HIGH RISK — ask the user to confirm before invoking.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           key: z.string().min(1).describe("Subscription key"),
-          approval_token: z.string().optional(),
+          confirm: z.boolean().optional().describe("Set to true once the user has approved this action"),
         })
         .strict(),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },

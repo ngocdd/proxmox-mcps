@@ -8,7 +8,7 @@ import {
   toJson,
 } from "../../src/format/response.js";
 import { ZodError } from "zod";
-import { ProxmoxApiError, NotFoundError, ApprovalRequiredError } from "../../src/proxmox/errors.js";
+import { ProxmoxApiError, NotFoundError } from "../../src/proxmox/errors.js";
 
 describe("format helpers", () => {
   it("ok returns text content", () => {
@@ -72,12 +72,6 @@ describe("format helpers", () => {
   it("errorResult maps NotFoundError", () => {
     const r = errorResult(new NotFoundError("/qemu"));
     expect(r.content[0]?.text).toContain("404");
-  });
-
-  it("errorResult maps ApprovalRequiredError with hint", () => {
-    const r = errorResult(new ApprovalRequiredError("delete_vm", "destructive"));
-    expect(r.content[0]?.text).toContain("approval_token");
-    expect(r.content[0]?.text).toContain("PROXMOX_DANGEROUSLY_ALLOW_DESTRUCTIVE");
   });
 
   it("errorResult maps generic Error", () => {
