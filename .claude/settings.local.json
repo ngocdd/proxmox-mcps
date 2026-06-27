@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm:*)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Bash(ls:*)",
+      "Bash(ls -la:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(cat:*)",
+      "Bash(echo:*)",
+      "Bash(pwd:*)",
+      "Bash(which:*)",
+      "Bash(chmod:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(touch:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(env:*)",
+      "Bash(test:*)",
+      "Bash(true)",
+      "Bash(false)",
+      "Bash(curl:*)",
+      "Bash(openssl:*)",
+      "Bash(jq:*)",
+      "Bash(PROXMOX_HOST=test.example.com PROXMOX_USER=root@pam PROXMOX_TOKEN_NAME=test PROXMOX_TOKEN_VALUE=00000000-0000-0000-0000-000000000000 node *)",
+      "Bash(claude mcp *)",
+      "mcp__proxmox__get_vms",
+      "Bash(gh auth *)",
+      "Bash(git ls-remote *)",
+      "Bash(git config *)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}
