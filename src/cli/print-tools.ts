@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `proxmox-mcps print-tools` (binary `proxmox-mcp-print-tools`) —
+ * `proxmox-mcps print-tools` (binary `proxmox-mcps-print-tools`) —
  * list every tool that would be registered.
  *
  * Pass `destructive` as the first arg to list only tools that require
