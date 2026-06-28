@@ -36,7 +36,7 @@ proxmox-mcps         # CLI binary (installed by the package above)
 ### From source
 
 ```bash
-git clone https://github.com/your-username/proxmox-mcps.git
+git clone https://github.com/ngocdd/proxmox-mcps.git
 cd proxmox-mcps
 npm install
 cp .env.example .env       # fill in Proxmox host + API token
@@ -98,6 +98,16 @@ PROXMOX_DANGEROUSLY_ALLOW_DESTRUCTIVE=true
 
 Audit-only logging for medium-risk tools is independent: `PROXMOX_MCP_AUDIT_ONLY=true` logs each medium-risk call without changing whether it runs.
 
+## SSRF guard for server-side downloads
+
+Tools that hand a URL to Proxmox (`download_iso`, future `*_from_url` tools) go through a URL guard before Proxmox fetches the file. The guard:
+
+- Allows only the schemes listed in `PROXMOX_DOWNLOAD_ALLOWED_SCHEMES` (default: `http,https`).
+- Resolves the host and rejects RFC1918 / RFC4193 / loopback / link-local / CGNAT / multicast / reserved ranges. The Proxmox host cannot be turned into an SSRF proxy against your internal network.
+- Honours an optional operator allowlist (`PROXMOX_DOWNLOAD_ALLOWED_HOSTS`) for suffix, bare-IP, or CIDR matches.
+
+See [`.env.example`](.env.example) for the full reference.
+
 Inspect the risk registry at any time:
 
 ```bash
@@ -151,7 +161,7 @@ git pull                               # fetch latest commits
 git checkout v0.2.0                    # optional — pin to a tag
 npm install                            # pick up any new/changed deps
 npm run build                          # tsc → dist/
-npm test                               # 179 tests must still pass
+npm test                               # full unit suite must pass
 ```
 
 Restart the running server (`npm start` or your process manager) so it loads the new build.
@@ -198,7 +208,7 @@ npm audit fix --force
 
 ```bash
 npm run build   # tsc must pass
-npm test        # 179 tests must still pass
+npm test        # full unit suite must pass
 ```
 
 If anything breaks, check the package's changelog. For major bumps (e.g. `vitest@2 → 4`) you may need to update test config, imports, or API calls.

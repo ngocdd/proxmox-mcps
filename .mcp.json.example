@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "proxmox": {
-      "command": "node",
-      "args": ["/Users/ngocdd/Documents/source_code/proxmox-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "proxmox-mcps"],
       "env": {
         "PROXMOX_HOST": "proxmox.example.com",
         "PROXMOX_PORT": "8006",

@@ -2,8 +2,9 @@
  * Risk classification registry.
  *
  * Importing this file has the side effect of registering every known tool
- * name with its risk level. Phase 1B+ tools add to this map; the policy gate
- * reads it to enforce approval-token semantics.
+ * name with its risk level. Tools added in later phases extend this map; the
+ * policy gate (`policy.ts`) reads it to decide whether a call needs a user
+ * confirmation prompt (high / destructive) or just an audit log (medium).
  */
 import { registerRisk, type Risk } from "./policy.js";
 
