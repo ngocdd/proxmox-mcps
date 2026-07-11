@@ -1,6 +1,6 @@
 {
   "name": "proxmox-mcps",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MCP server for Proxmox VE — AI-driven QEMU VM and LXC container management",
   "license": "MIT",
   "author": "Oliver <ngocdd94@gmail.com>",
