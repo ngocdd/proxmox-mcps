@@ -27,6 +27,29 @@ export function registerRisk(toolName: string, risk: Risk): void {
   RISK_REGISTRY.set(toolName, risk);
 }
 
+/**
+ * Config keys whose modification always warrants a destructive-level
+ * confirmation prompt, regardless of the surrounding tool's default risk.
+ *
+ * `protection` is the Proxmox "delete-protection" flag — flipping it (especially
+ * from 1 → 0) is the action that controls whether a VM/container can be
+ * destroyed at all, so we treat that change with the same gravity as `delete_*`.
+ */
+export const SENSITIVE_CONFIG_KEYS: ReadonlySet<string> = new Set(["protection"]);
+
+export function configHasSensitiveKey(config: Record<string, unknown>): boolean {
+  for (const key of Object.keys(config)) {
+    if (SENSITIVE_CONFIG_KEYS.has(key)) return true;
+  }
+  return false;
+}
+
+export function listSensitiveConfigKeys(
+  config: Record<string, unknown>,
+): string[] {
+  return Object.keys(config).filter((k) => SENSITIVE_CONFIG_KEYS.has(k));
+}
+
 export function getRisk(toolName: string): Risk {
   return RISK_REGISTRY.get(toolName) ?? "low";
 }
@@ -95,6 +118,65 @@ export class PolicyGate {
       throw new ConfirmationRequiredError(toolName, risk as "high" | "destructive", decision.prompt);
     }
   }
+
+  /**
+   * Demand destructive-level confirmation if `config` modifies any key from
+   * `SENSITIVE_CONFIG_KEYS` (currently `protection`). Returns `{ allowed: true }`
+   * when no sensitive key is present, so callers can use this unconditionally
+   * as a pre-flight check before mutating VM/CT config.
+   *
+   * Behaviour mirrors `assertAllowed` for high-risk tools, but at the
+   * destructive level — matching the gravity of `delete_*` operations. The
+   * caller is expected to surface the returned prompt to the user and
+   * re-invoke with `confirm: true` once they agree.
+   */
+  assertProtectedKeyChange(
+    toolName: string,
+    args: Record<string, unknown>,
+    config: Record<string, unknown>,
+  ): PolicyDecision {
+    const sensitiveKeys = listSensitiveConfigKeys(config);
+    if (sensitiveKeys.length === 0) return { allowed: true };
+
+    if (this.safety.dangerouslyAllowDestructive) {
+      this.logger?.warn(
+        {
+          tool: toolName,
+          risk: "destructive",
+          sensitiveKeys,
+          args: scrubArgs(args),
+          bypass: "dangerously_allow_destructive",
+        },
+        "policy.bypass",
+      );
+      return { allowed: true };
+    }
+
+    if (args.confirm === true) {
+      this.logger?.warn(
+        {
+          tool: toolName,
+          risk: "destructive",
+          sensitiveKeys,
+          args: scrubArgs(args),
+        },
+        "policy.confirmed",
+      );
+      return { allowed: true };
+    }
+
+    const prompt = buildSensitiveKeyPrompt(toolName, sensitiveKeys, args);
+    this.logger?.info(
+      {
+        tool: toolName,
+        risk: "destructive",
+        sensitiveKeys,
+        args: scrubArgs(args),
+      },
+      "policy.confirm_requested",
+    );
+    return { allowed: false, prompt };
+  }
 }
 
 function buildConfirmationPrompt(
@@ -132,6 +214,23 @@ function summariseArgs(args: Record<string, unknown>): string {
     }
   }
   return parts.join(", ");
+}
+
+function buildSensitiveKeyPrompt(
+  toolName: string,
+  sensitiveKeys: string[],
+  args: Record<string, unknown>,
+): string {
+  const summary = summariseArgs(args);
+  return [
+    `⚠️  Confirmation required: '${toolName}' is modifying sensitive config key(s): ${sensitiveKeys.join(", ")}.`,
+    `This change is treated as DESTRUCTIVE — it controls the resource's delete-protection flag and can affect whether the VM/container can be destroyed or recovered.`,
+    summary ? `Target: ${summary}` : null,
+    "Ask the user to reply 'yes' to proceed, or anything else to cancel.",
+    "If they confirm, re-invoke this tool with `confirm: true` added to the arguments.",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function scrubArgs(args: Record<string, unknown>): Record<string, unknown> {

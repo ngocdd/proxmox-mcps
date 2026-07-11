@@ -5,7 +5,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import * as paths from "../../proxmox/paths.js";
 import type { ToolContext } from "../context.js";
-import { runTool, jsonResult } from "../../format/response.js";
+import { runTool, jsonResult, ok } from "../../format/response.js";
 import { trackUpid } from "../helpers.js";
 
 export function registerContainerConfigTools(server: McpServer, ctx: ToolContext): void {
@@ -14,11 +14,15 @@ export function registerContainerConfigTools(server: McpServer, ctx: ToolContext
     {
       title: "Update container config",
       description:
-        "Patch one or more LXC container configuration keys (cores, memory, net0, features, etc.).",
+        "Patch one or more LXC container configuration keys (cores, memory, net0, features, etc.). Modifying the `protection` (delete-protection) key is treated as destructive — a confirmation prompt is required, like for `delete_container`.",
       inputSchema: z
         .object({
           node: z.string().min(1),
           vmid: z.string().regex(/^\d+$/),
+          confirm: z
+            .boolean()
+            .optional()
+            .describe("Set to true once the user has approved this action (required when modifying `protection`)"),
           config: z
             .record(z.union([z.string(), z.number(), z.boolean()]))
             .describe("Config keys to update, e.g. {\"cores\":2,\"memory\":1024}"),
@@ -34,6 +38,18 @@ export function registerContainerConfigTools(server: McpServer, ctx: ToolContext
     async (args) =>
       runTool(ctx, "update_container_config", args as Record<string, unknown>, async () => {
         const config = (args.config ?? {}) as Record<string, unknown>;
+        // Modifying the `protection` (delete-protection) flag is treated as a
+        // destructive change — matching the gravity of `delete_container`.
+        // Demand a confirmation prompt unless the caller has already opted in
+        // with `confirm: true`.
+        const protectedCheck = ctx.policy.assertProtectedKeyChange(
+          "update_container_config",
+          args as Record<string, unknown>,
+          config,
+        );
+        if (!protectedCheck.allowed) {
+          return ok(protectedCheck.prompt);
+        }
         if (Object.keys(config).length === 0) {
           return jsonResult(`No changes.`, { node: args.node, vmid: args.vmid });
         }

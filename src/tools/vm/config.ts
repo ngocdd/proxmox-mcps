@@ -8,7 +8,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import * as paths from "../../proxmox/paths.js";
 import type { ToolContext } from "../context.js";
-import { runTool, jsonResult } from "../../format/response.js";
+import { runTool, jsonResult, ok } from "../../format/response.js";
 import { trackUpid } from "../helpers.js";
 
 /**
@@ -68,7 +68,7 @@ export function registerVmConfigTools(server: McpServer, ctx: ToolContext): void
     {
       title: "Update VM config",
       description:
-        "Patch one or more VM configuration keys (cores, memory, scsi0 size, net0, ostype, etc.). Use current=true to update a running VM where supported. Only a safe allowlist of keys is accepted — keys that can attach host PCI/USB devices, override SMBIOS, or change the QEMU machine type are rejected. HIGH RISK — ask the user to confirm before invoking.",
+        "Patch one or more VM configuration keys (cores, memory, scsi0 size, net0, ostype, etc.). Use current=true to update a running VM where supported. Only a safe allowlist of keys is accepted — keys that can attach host PCI/USB devices, override SMBIOS, or change the QEMU machine type are rejected. HIGH RISK — ask the user to confirm before invoking. Modifying the `protection` (delete-protection) key is treated as destructive — a confirmation prompt is required, like for `delete_vm`.",
       inputSchema: z
         .object({
           node: z.string().min(1),
@@ -98,6 +98,18 @@ export function registerVmConfigTools(server: McpServer, ctx: ToolContext): void
               `Dangerous keys (args, hostpci*, usb*, machine, smbios1, numa*, bios, boot, cpuflags, …) ` +
               `are not exposed via this tool — modify them through the Proxmox API/UI directly.`,
           );
+        }
+        // Modifying the `protection` (delete-protection) flag is treated as a
+        // destructive change — matching the gravity of `delete_vm`. Demand a
+        // confirmation prompt unless the caller has already opted in with
+        // `confirm: true`.
+        const protectedCheck = ctx.policy.assertProtectedKeyChange(
+          "update_vm_config",
+          args as Record<string, unknown>,
+          config,
+        );
+        if (!protectedCheck.allowed) {
+          return ok(protectedCheck.prompt);
         }
         if (Object.keys(config).length === 0) {
           return jsonResult(`No changes.`, { node: args.node, vmid: args.vmid });
